@@ -26,7 +26,7 @@ from torch_geometric.utils.convert import from_networkx
 
 
 from networks_pyg.GCN import *
-from datasets.Myloader import profile_loader
+from datasets.Myloader import traffic_loader
 from optim import Mytrainer
 from optim.loss import loss_function,init_center
 from datasets import dataloader_pyg as dataloader
@@ -87,129 +87,23 @@ print('# of all Events, # of sids = ', len(eventID_all), len(sids_all))
 data_extraction_path = '/media/usr/HDD/Data/NAVER_df'
 filtered_ID = [eventID for eventID in eventID_all if eventID in os.listdir(data_extraction_path)]
 
-# ## load target
-# target_all = []
-# for eventID in tqdm(filtered_ID):
-#     try:
-#         # with open('/media/usr/WORKING/Naver_Congestion/Pattern_Matching_paperwork/Pattern_Matching_dtw/feature_extraction/target/{}'.format(eventID), 'rb') as f:
-#         with open('/media/usr/SSD/jiin/naver/Duration Estimation Thesis/feature_extraction/target/{}'.format(eventID), 'rb') as f:
-#             out = pickle.load(f)
-#     except:
-#         continue
-        
-#     if out != None:
-#         out = [eventID] + out
-#         target_all.append(out)
-
-# target_all = pd.DataFrame(target_all, columns=['eventID', 'speed_drop', 'congestion_score', 'cascading_event', 'congestion_start_idx', 'congestion_duration'])
-# target_ID = target_all[target_all.cascading_event==True].eventID.values
-# print("# of filtered Events = ", len(target_ID))
-
 ## load accident_all
-accident_all = pd.read_csv('datasets/data/accident_all.csv', index_col=0)
+accident_all = pd.read_csv('../data/accident_all.csv', index_col=0)
 print("# of filtered Events = ", len(accident_all))
 
 
-# Profile Extraction Functions
-def profile_extraction2(speed_all):
-    # Day of Week => monday : 0, sunday : 6
-    speed_all['weekday'] = [s.weekday() for s in speed_all.index]
-    speed_all['timestamp'] = [s.time() for s in speed_all.index]
-    
-    profile_mean = speed_all.groupby(['weekday', 'timestamp']).mean()
-    profile_std = speed_all.groupby(['weekday', 'timestamp']).std()
-    
-    speed_all = speed_all.drop(['weekday', 'timestamp'], axis=1)
-    
-    return speed_all, profile_mean, profile_std
-
-
-def main(args, target_sid, eventID, normalize='profile'):
+def main(args, target_sid, eventID):
     set_seed(args.seed)
-
-#     checkpoints_path=f'./checkpoints/{args.dataset}+OC-{args.module}+bestcheckpoint.pt'
-#     logging.basicConfig(filename=f"./log/{args.dataset}+OC-{args.module}_max.log",filemode="a",format="%(asctime)s-%(name)s-%(levelname)s-%(message)s",level=logging.INFO)
-#       
+  
     checkpoints_path=f'./checkpoints/{args.exp_name}+bestcheckpoint.pt'
     logging.basicConfig(filename=f"./log/{args.exp_name}.log",filemode="a",format="%(asctime)s-%(name)s-%(levelname)s-%(message)s",level=logging.INFO)
     logger=logging.getLogger('OCGNN')
 
     eventID = str(eventID)
 
-    # accident info : 0 : description / 1 : sid / 2 : sid 
-    # what sids?
-    with open(os.path.join(data_path, 'speeds', eventID, '{}.pickle'.format(eventID)), 'rb') as f:
-        accident_info = pickle.load(f)
-    G = nx.read_gpickle(os.path.join(data_path, 'speeds', eventID, '{}.gpickle'.format(eventID)))
-
-    sid_list = accident_info[1] + accident_info[2]
-
-    accident_sid = accident_info[0]['sids'][0]
-    accident_created = accident_info[0]['created']
-
-    # feature extraction
-    with open(os.path.join(data_extraction_path, eventID), 'rb') as f:
-        test = pickle.load(f)
-    speed_inflow = test['speed_inflow']
-    speed_outflow = test['speed_outflow']
-
-    speed_all = pd.concat([speed_inflow, speed_outflow], axis=1)
-    speed_all = speed_all.dropna(axis=1, how='all')
-    
-    tmp = speed_all[accident_sid].iloc[:, 0].values
-    speed_all = speed_all.drop([accident_sid], axis=1)
-    speed_all[accident_sid] = tmp
-
-    ## selected nodes
-    sid_list = list(set(list(speed_inflow.columns) + list(speed_outflow.columns) + [accident_sid]))
-    H = nx.subgraph(G, sid_list)
-
-    ## speed_all 5min rolling & normalize
-    speed_all = speed_all.resample(rule='5T').mean()
-    if normalize == 'standard':
-        scaler = StandardScaler() 
-        arr_scaled = scaler.fit_transform(speed_all) 
-        df_all_norm = pd.DataFrame(arr_scaled, columns=speed_all.columns,index=speed_all.index)
-    elif normalize == 'minmax':
-        scaler = MinMaxScaler() 
-        arr_scaled = scaler.fit_transform(speed_all) 
-        df_all_norm = pd.DataFrame(arr_scaled, columns=speed_all.columns,index=speed_all.index)
-    elif normalize == 'profile':
-        ## profile extraction
-        # profile_all = profile_extraction(df_all_norm)
-        speed_all, profile_mean, profile_std = profile_extraction2(speed_all)
-
-        ## profile normalization
-        date_index = np.arange(datetime(2020, 9, 2), datetime(2021, 3, 1), timedelta(days=1)).astype(datetime)
-        df_all_norm = speed_all.copy()
-
-        for date in date_index:
-            date_index = np.arange(date, date+timedelta(days=1), timedelta(minutes=5)).astype(datetime)
-            tmp = speed_all.loc[date_index]
-            weekday = date.weekday()
-            mean_tmp = profile_mean[288*weekday:288*(weekday+1)]
-            std_tmp = profile_std[288*weekday:288*(weekday+1)]
-
-            normalized = (tmp.values - mean_tmp) / std_tmp
-            df_all_norm.loc[date_index] = normalized.values
-
-    # define anomaly label
-    labels = []
-    accident_case['created'] = pd.to_datetime(accident_case['created'])
-    for ix, row in accident_case.iterrows():
-        accident_created = row['created']
-        min = accident_created.minute % 5
-        sec = accident_created.second
-        accident_pt = accident_created - timedelta(minutes=min, seconds=sec)
-        labels.append(list(map(int, (df_all_norm.index >= accident_pt+timedelta(minutes=-60)) & (df_all_norm.index < accident_pt+timedelta(minutes=60)))))
-    labels = list(map(int, (np.sum(labels, axis=0) > 0)))
-    label_df = pd.DataFrame(labels, index=df_all_norm.index, columns=['label'])
-
-
 
     # DataLoader
-    train_loader, val_loader, test_loader = profile_loader(df_all_norm, label_df, H)
-
+    train_loader, val_loader, test_loader = traffic_loader(args, target_sid)
     print(len(train_loader), len(val_loader), len(test_loader))
 
     # Model Train
@@ -252,7 +146,7 @@ if __name__ == '__main__':
             help="Weight for L2 loss")
     parser.add_argument('--early-stop', action='store_true', default=False,
                         help="indicates whether to use early stop or not")
-    parser.add_argument("--self-loop", action='store_true',
+    parser.add_argument("--self-loop", action='store_true', default=False,
             help="graph self-loop (default=False)")
     parser.add_argument("--norm", action='store_true',
             help="graph normalization (default=False)")
@@ -289,4 +183,4 @@ if __name__ == '__main__':
     accident_case = accident_all[accident_all.loc[:, 'accident_sid'] == target_sid]
     eventID = accident_case.eventId.iloc[0]
 
-    fire.Fire(main(args, target_sid, eventID, normalize=args.normalize))
+    fire.Fire(main(args, target_sid, eventID))

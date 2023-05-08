@@ -49,28 +49,22 @@ def loader(args):
     return train_loader, val_loader, test_loader, input_dim#, label_dim
 
 
-def profile_loader(df_all_norm, label_df, H):
-    ## Scaling
-    sc = RobustScaler()
-    transform = sc.fit_transform(df_all_norm)
-    df_all_norm = pd.DataFrame(transform, index=df_all_norm.index, columns=df_all_norm.columns)
 
-    train_df = df_all_norm[df_all_norm.index < datetime(2020, 12, 1)]
-    val_df = df_all_norm[(df_all_norm.index >= datetime(2020, 12, 1)) & (df_all_norm.index < datetime(2021, 1, 1))]
-    test_df = df_all_norm[(df_all_norm.index >= datetime(2021, 1, 1)) & (df_all_norm.index < datetime(2021, 2, 1))]
+def traffic_loader(args, target_sid):
+        
+    train_df = pd.read_csv('../data/{}/train_x.csv'.format(target_sid), index_col=0)
+    val_df = pd.read_csv('../data/{}/val_x.csv'.format(target_sid), index_col=0)
+    test_df = pd.read_csv('../data/{}/test_x.csv'.format(target_sid), index_col=0)
+    train_df.columns = train_df.columns.astype(int)
+    val_df.columns = val_df.columns.astype(int)
+    test_df.columns = test_df.columns.astype(int)
+    
+    
+    train_label = pd.read_csv('../data/{}/train_y.csv'.format(target_sid), index_col=0)
+    val_label = pd.read_csv('../data/{}/val_y.csv'.format(target_sid), index_col=0)
+    test_label = pd.read_csv('../data/{}/test_y.csv'.format(target_sid), index_col=0)
 
-    train_label = label_df[label_df.index < datetime(2020, 12, 1)]
-    val_label = label_df[(label_df.index >= datetime(2020, 12, 1)) & (label_df.index < datetime(2021, 1, 1))]
-    test_label = label_df[(label_df.index >= datetime(2021, 1, 1)) & (label_df.index < datetime(2021, 2, 1))]
-
-    # train_df = train_df.fillna(0)
-    # val_df = val_df.fillna(0)
-    # test_df = test_df.fillna(0)
-    train_df = train_df.bfill(limit=36).ffill(limit=36).fillna(0, limit=288).dropna(axis=1)
-    val_df = val_df.bfill(limit=36).ffill(limit=36).fillna(0, limit=288).dropna(axis=1)
-    test_df = test_df.bfill(limit=36).ffill(limit=36).fillna(0, limit=288).dropna(axis=1)
-
-    H = nx.subgraph(H, list(train_df.columns))
+    H = nx.read_gpickle("../data/{}/sensor_graph.gpickle".format(target_sid))
 
     def pyg_dataset(H, data_df, label_df, mode='train'):
         g_all = []
@@ -81,7 +75,8 @@ def profile_loader(df_all_norm, label_df, H):
                 node_features = node_features[list(H.nodes)]
                 pyg_graph = from_networkx(H)
                 # add self loop
-                # pyg_graph.edge_index = add_self_loops(pyg_graph.edge_index)[0]
+                if args.self_loop == True:
+                    pyg_graph.edge_index = add_self_loops(pyg_graph.edge_index)[0]
                 # remove the incident case in training set
                 if 1 in label_df.iloc[i:i+24]['label'].values:
                     continue
@@ -97,7 +92,8 @@ def profile_loader(df_all_norm, label_df, H):
                 node_features = data_df.iloc[i:i+24]
                 node_features = node_features[list(H.nodes)]
                 pyg_graph = from_networkx(H)
-                pyg_graph.edge_index = add_self_loops(pyg_graph.edge_index)[0]
+                if args.self_loop == True:
+                    pyg_graph.edge_index = add_self_loops(pyg_graph.edge_index)[0]
                 pyg_graph.x = torch.FloatTensor(node_features.T.values)
                 pyg_graph.y = torch.tensor([label_df.iloc[i+24]])
                 g_all.append(pyg_graph)
