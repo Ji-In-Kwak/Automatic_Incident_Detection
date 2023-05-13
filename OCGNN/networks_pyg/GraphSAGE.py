@@ -52,6 +52,7 @@ class GraphSAGE_gc(nn.Module):
                  activation,
                  dropout,
                  aggregator_type,
+                 readout_type,
                  reverse=False):
         # super(GraphSAGE, self).__init__()
         super().__init__()
@@ -69,6 +70,10 @@ class GraphSAGE_gc(nn.Module):
 
         self.dropout = nn.Dropout(p=dropout)
 
+        # readout layer
+        self.readout = readout_type
+
+        # reverse adjacency matrix
         self.reverse = reverse
 
         
@@ -83,9 +88,13 @@ class GraphSAGE_gc(nn.Module):
             x = self.dropout(x)
             x = F.relu(x)
         x = self.outlayer(x, edge_index)
-        # if self.readout == 'mean':
-#         x = global_mean_pool(x, batch)
-        x = global_add_pool(x, batch)
-        
+
+        if self.readout == 'mean':
+            x = global_mean_pool(x, batch)
+        elif self.readout == 'sum':
+            x = global_add_pool(x, batch)
+        elif self.readout == 'max':
+            x = global_max_pool(x, batch)
+            
         return x
     

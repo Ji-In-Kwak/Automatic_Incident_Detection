@@ -146,7 +146,7 @@ if __name__ == '__main__':
             help="Weight for L2 loss")
     parser.add_argument('--early-stop', action='store_true', default=False,
                         help="indicates whether to use early stop or not")
-    parser.add_argument("--self-loop", action='store_true', default=False,
+    parser.add_argument("--self-loop", action='store_true', default=True,
             help="graph self-loop (default=False)")
     parser.add_argument("--norm", action='store_true',
             help="graph normalization (default=False)")
@@ -154,18 +154,24 @@ if __name__ == '__main__':
             help='Normalization method in data preprocessing')
     parser.add_argument("--reverse", default=False,
             help='Reverse of the adjacency matrix')
+    parser.add_argument("--pooling", default='sum',
+            help='Type of pooling layer to aggregate embeddings into graph embedidng')
     parser.add_argument("--exp-name", default='test',
             help='exp name to save model and log')
     parser.set_defaults(self_loop=True)
     parser.set_defaults(norm=False)
     args = parser.parse_args()
-    if args.module=='GCN':
-        #args.self_loop=True
+    if args.module=='GCN_gc':
+        args.self_loop=True
         args.norm=True
-    if args.module=='GAE':
-        args.lr=0.002
-        args.dropout=0.
-        args.weight_decay=0.
+    if args.module=='GraphSAGE':
+        args.self_loop=True
+    if args.module=='STGCN':
+        args.self_loop=True
+#     if args.module=='GAE':
+#         args.lr=0.002
+#         args.dropout=0.
+#         args.weight_decay=0.
         # args.n_hidden=32
     #     args.self_loop=True
     # if args.module=='GraphSAGE':

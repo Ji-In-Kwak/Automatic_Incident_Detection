@@ -19,35 +19,24 @@ def init_model(args,input_dim):
                 F.relu,
                 args.dropout)
     if args.module== 'GCN_gc':
-        if args.reverse == False:
-            model = GCN_gc(
-                    args.n_layers,
-                    input_dim,
-                    args.n_hidden*2,
-                    args.n_hidden,
-                    F.relu,
-                    args.dropout,
-                    readout_type='sum',
-                    reverse=False) # mean, sum, max, #sagpool
-        else:
-            model = GCN_gc(
-                    args.n_layers,
-                    input_dim,
-                    args.n_hidden*2,
-                    args.n_hidden,
-                    F.relu,
-                    args.dropout,
-                    readout_type='sum',
-                    reverse=True) # mean, sum, max, #sagpool
-    if args.module== 'GCN_traffic':
-        model = GCN_traffic(
+        model = GCN_gc(
                 args.n_layers,
                 input_dim,
                 args.n_hidden*2,
                 args.n_hidden,
                 F.relu,
                 args.dropout,
-                readout_type='mean') # mean, sum, max, #sagpool
+                readout_type=args.pooling,
+                reverse=args.reverse) # mean, sum, max, #sagpool
+    # if args.module== 'GCN_traffic':
+    #     model = GCN_traffic(
+    #             args.n_layers,
+    #             input_dim,
+    #             args.n_hidden*2,
+    #             args.n_hidden,
+    #             F.relu,
+    #             args.dropout,
+    #             readout_type='mean') # mean, sum, max, #sagpool
     if args.module== 'GraphSAGE':
         model = GraphSAGE(
                 input_dim,
@@ -58,42 +47,40 @@ def init_model(args,input_dim):
                 args.dropout,
                 aggregator_type='SoftmaxAggregation') #mean,pool,lstm,gcn 使用pool做多图学习有大问题阿
     if args.module== 'GraphSAGE_gc':
-        if args.reverse == False:
-            model = GraphSAGE_gc(
-                    input_dim,
-                    args.n_hidden*2,
-                    args.n_hidden,
-                    args.n_layers,
-                    F.relu,
-                    args.dropout,
-                    aggregator_type='SoftmaxAggregation',
-                    reverse=False) 
-        else:
-            model = GraphSAGE_gc(
-                    input_dim,
-                    args.n_hidden*2,
-                    args.n_hidden,
-                    args.n_layers,
-                    F.relu,
-                    args.dropout,
-                    aggregator_type='SoftmaxAggregation',
-                    reverse=True) 
+        model = GraphSAGE_gc(
+                input_dim,
+                args.n_hidden*2,
+                args.n_hidden,
+                args.n_layers,
+                F.relu,
+                args.dropout,
+                aggregator_type='SoftmaxAggregation',
+                readout_type=args.pooling,
+                reverse=args.reverse) 
+
     if args.module == 'STGCN':
-        model = STGCN(args.n_layers, input_dim, args.n_hidden*2, args.n_hidden, F.relu, args.dropout, readout_type='sum')
-    if args.module == 'GatedGCN':
-        model = GatedGCN(args.n_layers, input_dim, args.n_hidden*2, args.n_hidden, F.relu, args.dropout, readout_type='sum')
-#     if args.module== 'GAT':
-#         model = GAT(None,
-#                 args.n_layers,
-#                 input_dim,
-#                 args.n_hidden*2,
-#                 args.n_hidden,
-#                 heads=([8] * args.n_layers) + [1],
-#                 activation=F.relu,
-#                 feat_drop=args.dropout,
-#                 attn_drop=args.dropout,
-#                 negative_slope=0.2,
-#                 residual=False)
+        model = STGCN(
+                args.n_layers, 
+                input_dim, 
+                args.n_hidden*2, 
+                args.n_hidden, 
+                F.relu, 
+                args.dropout, 
+                readout_type=args.pooling,
+                reverse=args.reverse)
+
+    # if args.module== 'GAT':
+    #     model = GAT(None,
+    #             args.n_layers,
+    #             input_dim,
+    #             args.n_hidden*2,
+    #             args.n_hidden,
+    #             heads=([8] * args.n_layers) + [1],
+    #             activation=F.relu,
+    #             feat_drop=args.dropout,
+    #             attn_drop=args.dropout,
+    #             negative_slope=0.2,
+    #             residual=False)
 #     if args.module== 'GIN':
 #         model = GIN(num_layers=args.n_layers, 
 #                     num_mlp_layers=2, #1 means linear model.

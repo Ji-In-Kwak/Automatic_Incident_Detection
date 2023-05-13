@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch_geometric.nn import GATConv
-from torch_geometric.nn import global_max_pool, global_add_pool
+from torch_geometric.nn import global_mean_pool, global_add_pool, global_max_pool
 import torch.nn.functional as F
 
     
@@ -32,7 +32,7 @@ class GAT(torch.nn.Module):
     
 
 class GAT_gc(torch.nn.Module):
-    def __init__(self, n_layers, in_dim, n_hidden, out_dim, activation, drop_ratio, readout_type, reverse=False):
+    def __init__(self, n_layers, in_dim, n_hidden, out_dim, activation, drop_ratio, readout_type='sum', reverse=False):
         super().__init__()
         self.layers = nn.ModuleList()
         # input layer
@@ -62,7 +62,12 @@ class GAT_gc(torch.nn.Module):
                 x = self.dropout(x)
             x = F.relu(x)
         
-        x = global_add_pool(x, batch)
+        if self.readout == 'mean':
+            x = global_mean_pool(x, batch)
+        elif self.readout == 'sum':
+            x = global_add_pool(x, batch)
+        elif self.readout == 'max':
+            x = global_max_pool(x, batch)
 
         # return F.log_softmax(x, dim=1)
         return x

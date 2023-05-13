@@ -30,7 +30,7 @@ class GCN(torch.nn.Module):
     
 
 class GCN_gc(torch.nn.Module):
-    def __init__(self, n_layers, in_dim, n_hidden, out_dim, activation, drop_ratio, readout_type, reverse=False):
+    def __init__(self, n_layers, in_dim, n_hidden, out_dim, activation, drop_ratio, readout_type='sum', reverse=False):
         super().__init__()
         self.layers = nn.ModuleList()
         # input layer
@@ -62,9 +62,12 @@ class GCN_gc(torch.nn.Module):
             x = F.relu(x)
         x = self.outlayer(x, edge_index)
         
-#         if self.readout == 'mean':
-#             x = global_mean_pool(x, batch)
-        x = global_add_pool(x, batch)
+        if self.readout == 'mean':
+            x = global_mean_pool(x, batch)
+        elif self.readout == 'sum':
+            x = global_add_pool(x, batch)
+        elif self.readout == 'max':
+            x = global_max_pool(x, batch)
 
         # return F.log_softmax(x, dim=1)
         return x

@@ -111,91 +111,91 @@ class TemporalConvLayer(nn.Module):
         return x
     
 
-class GraphConv(nn.Module):
-    def __init__(self, c_in, c_out, gso, bias):
-        super(GraphConv, self).__init__()
-        self.c_in = c_in
-        self.c_out = c_out
-        self.gso = gso
-        self.weight = nn.Parameter(torch.FloatTensor(c_in, c_out))
-        if bias:
-            self.bias = nn.Parameter(torch.FloatTensor(c_out))
-        else:
-            self.register_parameter('bias', None)
-        self.reset_parameters()
+# class GraphConv(nn.Module):
+#     def __init__(self, c_in, c_out, gso, bias):
+#         super(GraphConv, self).__init__()
+#         self.c_in = c_in
+#         self.c_out = c_out
+#         self.gso = gso
+#         self.weight = nn.Parameter(torch.FloatTensor(c_in, c_out))
+#         if bias:
+#             self.bias = nn.Parameter(torch.FloatTensor(c_out))
+#         else:
+#             self.register_parameter('bias', None)
+#         self.reset_parameters()
 
-    def reset_parameters(self):
-        init.kaiming_uniform_(self.weight, a=math.sqrt(5))
-        if self.bias is not None:
-            fan_in, _ = init._calculate_fan_in_and_fan_out(self.weight)
-            bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
-            init.uniform_(self.bias, -bound, bound)
+#     def reset_parameters(self):
+#         init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+#         if self.bias is not None:
+#             fan_in, _ = init._calculate_fan_in_and_fan_out(self.weight)
+#             bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
+#             init.uniform_(self.bias, -bound, bound)
 
-    def forward(self, x):
-        #bs, c_in, ts, n_vertex = x.shape
-        x = torch.permute(x, (0, 2, 3, 1))
+#     def forward(self, x):
+#         #bs, c_in, ts, n_vertex = x.shape
+#         x = torch.permute(x, (0, 2, 3, 1))
 
-        first_mul = torch.einsum('hi,btij->bthj', self.gso, x)
-        second_mul = torch.einsum('bthi,ij->bthj', first_mul, self.weight)
+#         first_mul = torch.einsum('hi,btij->bthj', self.gso, x)
+#         second_mul = torch.einsum('bthi,ij->bthj', first_mul, self.weight)
 
-        if self.bias is not None:
-            graph_conv = torch.add(second_mul, self.bias)
-        else:
-            graph_conv = second_mul
+#         if self.bias is not None:
+#             graph_conv = torch.add(second_mul, self.bias)
+#         else:
+#             graph_conv = second_mul
         
-        return graph_conv
+#         return graph_conv
 
-class GraphConvLayer(nn.Module):
-    def __init__(self, graph_conv_type, c_in, c_out, Ks, gso, bias):
-        super(GraphConvLayer, self).__init__()
-        self.graph_conv_type = graph_conv_type
-        self.c_in = c_in
-        self.c_out = c_out
-        self.align = Align(c_in, c_out)
-        self.Ks = Ks
-        self.gso = gso
-        if self.graph_conv_type == 'cheb_graph_conv':
-            self.cheb_graph_conv = ChebGraphConv(c_out, c_out, Ks, gso, bias)
-        elif self.graph_conv_type == 'graph_conv':
-            self.graph_conv = GraphConv(c_out, c_out, gso, bias)
+# class GraphConvLayer(nn.Module):
+#     def __init__(self, graph_conv_type, c_in, c_out, Ks, gso, bias):
+#         super(GraphConvLayer, self).__init__()
+#         self.graph_conv_type = graph_conv_type
+#         self.c_in = c_in
+#         self.c_out = c_out
+#         self.align = Align(c_in, c_out)
+#         self.Ks = Ks
+#         self.gso = gso
+#         if self.graph_conv_type == 'cheb_graph_conv':
+#             self.cheb_graph_conv = ChebGraphConv(c_out, c_out, Ks, gso, bias)
+#         elif self.graph_conv_type == 'graph_conv':
+#             self.graph_conv = GraphConv(c_out, c_out, gso, bias)
 
-    def forward(self, x):
-        x_gc_in = self.align(x)
-        if self.graph_conv_type == 'cheb_graph_conv':
-            x_gc = self.cheb_graph_conv(x_gc_in)
-        elif self.graph_conv_type == 'graph_conv':
-            x_gc = self.graph_conv(x_gc_in)
-        x_gc = x_gc.permute(0, 3, 1, 2)
-        x_gc_out = torch.add(x_gc, x_gc_in)
+#     def forward(self, x):
+#         x_gc_in = self.align(x)
+#         if self.graph_conv_type == 'cheb_graph_conv':
+#             x_gc = self.cheb_graph_conv(x_gc_in)
+#         elif self.graph_conv_type == 'graph_conv':
+#             x_gc = self.graph_conv(x_gc_in)
+#         x_gc = x_gc.permute(0, 3, 1, 2)
+#         x_gc_out = torch.add(x_gc, x_gc_in)
 
-        return x_gc_out
+#         return x_gc_out
 
-class STConvBlock(nn.Module):
-    # STConv Block contains 'TGTND' structure
-    # T: Gated Temporal Convolution Layer (GLU or GTU)
-    # G: Graph Convolution Layer (ChebGraphConv or GraphConv)
-    # T: Gated Temporal Convolution Layer (GLU or GTU)
-    # N: Layer Normolization
-    # D: Dropout
+# class STConvBlock(nn.Module):
+#     # STConv Block contains 'TGTND' structure
+#     # T: Gated Temporal Convolution Layer (GLU or GTU)
+#     # G: Graph Convolution Layer (ChebGraphConv or GraphConv)
+#     # T: Gated Temporal Convolution Layer (GLU or GTU)
+#     # N: Layer Normolization
+#     # D: Dropout
 
-    def __init__(self, Kt, Ks, n_vertex, last_block_channel, channels, act_func, graph_conv_type, gso, bias, droprate):
-        super(STConvBlock, self).__init__()
-        self.tmp_conv1 = TemporalConvLayer(Kt, last_block_channel, channels[0], n_vertex, act_func)
-        self.graph_conv = GraphConvLayer(graph_conv_type, channels[0], channels[1], Ks, gso, bias)
-        self.tmp_conv2 = TemporalConvLayer(Kt, channels[1], channels[2], n_vertex, act_func)
-        self.tc2_ln = nn.LayerNorm([n_vertex, channels[2]])
-        self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(p=droprate)
+#     def __init__(self, Kt, Ks, n_vertex, last_block_channel, channels, act_func, graph_conv_type, gso, bias, droprate):
+#         super(STConvBlock, self).__init__()
+#         self.tmp_conv1 = TemporalConvLayer(Kt, last_block_channel, channels[0], n_vertex, act_func)
+#         self.graph_conv = GraphConvLayer(graph_conv_type, channels[0], channels[1], Ks, gso, bias)
+#         self.tmp_conv2 = TemporalConvLayer(Kt, channels[1], channels[2], n_vertex, act_func)
+#         self.tc2_ln = nn.LayerNorm([n_vertex, channels[2]])
+#         self.relu = nn.ReLU()
+#         self.dropout = nn.Dropout(p=droprate)
 
-    def forward(self, x):
-        x = self.tmp_conv1(x)
-        x = self.graph_conv(x)
-        x = self.relu(x)
-        x = self.tmp_conv2(x)
-        x = self.tc2_ln(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
-        x = self.dropout(x)
+#     def forward(self, x):
+#         x = self.tmp_conv1(x)
+#         x = self.graph_conv(x)
+#         x = self.relu(x)
+#         x = self.tmp_conv2(x)
+#         x = self.tc2_ln(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+#         x = self.dropout(x)
 
-        return x
+#         return x
 
 
 class STblock(torch.nn.Module):
@@ -238,17 +238,13 @@ class STblock(torch.nn.Module):
         x = x.unsqueeze(0).permute(0,3,1,2)   # [1, c2, ts-k+1, n_nodes]
         x = self.tmp_conv2(x)
         # print("temp2 = ", x.shape)  # [1, c3, ts-2k+2, n_nodes]
-        # x = x.permute(0,3,1,2).unsqueeze(0).reshape(len(batch), -1)  
         x = self.dropout(x)
-        # print("out = ", x.shape)   # [n_nodes, c2 * (ts)]
-
-        # x = global_add_pool(x, batch)
 
         return x
 
 
 class STGCN(torch.nn.Module):
-    def __init__(self, n_layers, in_dim, n_hidden, out_dim, activation, drop_ratio, readout_type):
+    def __init__(self, n_layers, in_dim, n_hidden, out_dim, activation, drop_ratio, readout_type, reverse=False):
         super().__init__()
 
         self.stblocks = nn.ModuleList()
@@ -264,11 +260,20 @@ class STGCN(torch.nn.Module):
             ts_dim = in_dim - 2*kernel_size*i + 2*i
             self.stblocks.append(STblock(last_block_channel, channel, ts_dim, 'relu', drop_ratio))
             last_block_channel = channel[-1]
+
+        # readout layer
+        self.readout = readout_type
+
+        # reverse adjacency matrix
+        self.reverse = reverse
             
             
 
     def forward(self, data):
         x, edge_index, batch = data.x, data.edge_index, data.batch
+        if self.reverse:
+            edge_index_rev = torch.stack([edge_index[1], edge_index[0]])
+            edge_index = edge_index_rev
 
         x = x.unsqueeze(0)
         
@@ -279,7 +284,12 @@ class STGCN(torch.nn.Module):
         x = x.permute(1,0,2).reshape(len(batch), -1) 
 
 
-        x = global_add_pool(x, batch)
+        if self.readout == 'mean':
+            x = global_mean_pool(x, batch)
+        elif self.readout == 'sum':
+            x = global_add_pool(x, batch)
+        elif self.readout == 'max':
+            x = global_max_pool(x, batch)
 
         return x
 
