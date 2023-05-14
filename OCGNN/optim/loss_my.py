@@ -20,6 +20,20 @@ def anomaly_score(data_center,outputs,radius=0,mask= None):
     scores = dist - radius ** 2
     return dist,scores
 
+def SAD_loss_function(nu, data_center, outputs, labels, radius=0, mask=None):
+    # optimization parameter
+    eps = 1e-6
+
+    if mask == None:
+        dist = torch.sum((outputs - data_center) ** 2, dim=1)
+    scores = dist - radius ** 2
+    scores_pos = torch.max(torch.zeros_like(scores), scores)
+    losses = torch.where(labels == 0, scores_pos, (scores_pos + eps) ** (-labels.float()))
+    loss = radius ** 2 + (1 / nu) * torch.mean(losses)
+
+    return loss,dist,scores
+
+
 def init_center(args, loader, model, eps=0.001):
     """Initialize hypersphere center c as the mean from an initial forward pass on the data."""
     n_samples = 0

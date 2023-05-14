@@ -50,7 +50,7 @@ def loader(args):
 
 
 
-def traffic_loader(args, target_sid):
+def traffic_loader(args, target_sid, method='unsup'):
         
     train_df = pd.read_csv('../data/{}/train_x.csv'.format(target_sid), index_col=0)
     val_df = pd.read_csv('../data/{}/val_x.csv'.format(target_sid), index_col=0)
@@ -100,7 +100,12 @@ def traffic_loader(args, target_sid):
 
         return g_all
         
-    train_dataset = pyg_dataset(H, train_df, train_label, 'train')
+    if method == 'unsup':
+        print('Unsupervised Learning')
+        train_dataset = pyg_dataset(H, train_df, train_label, 'train')
+    if method == 'semisup':
+        print('Semi-supervised Learning')
+        train_dataset = pyg_dataset(H, train_df, train_label, 'semi_train')
     val_dataset = pyg_dataset(H, val_df, val_label, 'val')
     test_dataset = pyg_dataset(H, test_df, test_label, 'test')
 
