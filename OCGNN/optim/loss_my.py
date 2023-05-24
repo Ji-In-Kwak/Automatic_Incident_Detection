@@ -34,7 +34,7 @@ def SAD_loss_function(nu, data_center, outputs, labels, radius=0, mask=None):
     return loss,dist,scores
 
 
-def init_center(args, loader, model, eps=0.001):
+def init_center(args, loader, model, mask = True, label=0, eps=0.001):
     """Initialize hypersphere center c as the mean from an initial forward pass on the data."""
     n_samples = 0
     device = f'cuda:{args.gpu}'
@@ -44,7 +44,11 @@ def init_center(args, loader, model, eps=0.001):
     with torch.no_grad():
         outputs = []
         for data in loader:
-            outputs.append(model(data.to(device)))
+            if mask:
+                mask_ix = np.where(data.y == label)
+            else:
+                mask_ix = np.arange(len(data.y))
+            outputs.append(model(data.to(device))[mask_ix])
         outputs = torch.cat(outputs)        
         # get the inputs of the batch
 

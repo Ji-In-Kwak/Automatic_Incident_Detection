@@ -36,7 +36,7 @@ def train(args, logger, train_loader, val_loader, test_loader, model, path):
     best_val_auc = 0
 
     # initialize data center
-    data_center= init_center(args, train_loader, model)
+    data_center= init_center(args, train_loader, model, mask=True, label=0)
     # data_center= torch.zeros(args.n_hidden, device=f'cuda:{args.gpu}')
     radius=torch.tensor(0, device=f'cuda:{args.gpu}')# radius R initialized with 0 by default.
 
@@ -53,6 +53,7 @@ def train(args, logger, train_loader, val_loader, test_loader, model, path):
     for epoch in range(args.n_epochs):
         t0 = time.time()
         loss_sum = 0.0
+        dist_all = []
         # forward
         for (batch_idx, batch_graph) in enumerate(train_loader):
             batch_graph = batch_graph.to(device)
@@ -64,6 +65,9 @@ def train(args, logger, train_loader, val_loader, test_loader, model, path):
             loss.backward()
             optimizer.step()
             loss_sum += loss.item()
+            
+            dist_all.append(dist)
+        dist_all = torch.concat(dist_all)
 
         # epoch train loss
         train_loss = loss_sum / len(train_loader)
@@ -71,9 +75,12 @@ def train(args, logger, train_loader, val_loader, test_loader, model, path):
         dur.append(time.time() - t0)
 
         # update the radius
-        if epoch % 3 == 0:
-            radius.data=torch.tensor(get_radius(dist, args.nu), device=f'cuda:{args.gpu}')
+        if epoch % 4 == 0:
+            radius.data=torch.tensor(get_radius(dist_all, args.nu), device=f'cuda:{args.gpu}')
             print("new radius = ", radius)
+        if epoch % 4 == 2:
+            data_center = init_center(args, train_loader, model, mask=True, label=0)
+            print("data center updated")
         # if ((epoch+1) % 50 == 0) or (epoch == 0):
         #     epoch_ckpt = checkpoints_path.replace('+bestcheckpoint.pt', f'+epoch{epoch+1}.pt')
         #     torch.save({'model': model.state_dict(), 'data_center':data_center, 'radius':radius, 'epoch':epoch}, epoch_ckpt)
@@ -96,6 +103,7 @@ def train(args, logger, train_loader, val_loader, test_loader, model, path):
         #     best_val_loss = val_loss
         if auc > best_val_auc:
             print("Saving Model Parameters")
+            logger.info("Saving Model Parameters")
             torch.save({'model': model.state_dict(), 'data_center':data_center, 'radius':radius, 'epoch':epoch}, checkpoints_path)
             best_val_auc = auc
                                             

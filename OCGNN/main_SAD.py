@@ -49,43 +49,43 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-# Data Loading
-data_root_path = '/media/usr/HDD/Data/NAVER'
-partition_list = os.listdir(data_root_path)
-partition_list = [p for p in partition_list if p[0]=='2']
-partition_list = np.sort(partition_list)
+# # Data Loading
+# data_root_path = '/media/usr/HDD/Data/NAVER'
+# partition_list = os.listdir(data_root_path)
+# partition_list = [p for p in partition_list if p[0]=='2']
+# partition_list = np.sort(partition_list)
 
-data_path = '/media/usr/HDD/Working/Naver_Data/data_parsing'
+# data_path = '/media/usr/HDD/Working/Naver_Data/data_parsing'
 
-sids_all = []
-eventID_all = []
+# sids_all = []
+# eventID_all = []
 
-for partition in partition_list:
-    try: 
-        eventID_list = [filename.split('.')[0] for filename in os.listdir(os.path.join(data_path, 'networks', partition)) if filename[0] != '.']
-        eventID_list = np.unique(eventID_list)
-        eventID_all.append(eventID_list)
+# for partition in partition_list:
+#     try: 
+#         eventID_list = [filename.split('.')[0] for filename in os.listdir(os.path.join(data_path, 'networks', partition)) if filename[0] != '.']
+#         eventID_list = np.unique(eventID_list)
+#         eventID_all.append(eventID_list)
 
-        for eventID in eventID_list:
-            with open(os.path.join(data_path, 'networks', partition, '{}.pickle'.format(eventID)), 'rb') as f:
-                accident_info = pickle.load(f)
-            G = nx.read_gpickle(os.path.join(data_path, 'networks', partition, '{}.gpickle'.format(eventID)))
+#         for eventID in eventID_list:
+#             with open(os.path.join(data_path, 'networks', partition, '{}.pickle'.format(eventID)), 'rb') as f:
+#                 accident_info = pickle.load(f)
+#             G = nx.read_gpickle(os.path.join(data_path, 'networks', partition, '{}.gpickle'.format(eventID)))
 
-            sids_all.append(accident_info[1])
-            sids_all.append(accident_info[2])
-    except:
-        continue
+#             sids_all.append(accident_info[1])
+#             sids_all.append(accident_info[2])
+#     except:
+#         continue
 
-eventID_all = [x for y in eventID_all for x in y]
-eventID_all = np.unique(eventID_all)
+# eventID_all = [x for y in eventID_all for x in y]
+# eventID_all = np.unique(eventID_all)
         
-sids_all = [x for y in sids_all for x in y]
-sids_all = np.unique(sids_all)
+# sids_all = [x for y in sids_all for x in y]
+# sids_all = np.unique(sids_all)
 
-print('# of all Events, # of sids = ', len(eventID_all), len(sids_all))
+# print('# of all Events, # of sids = ', len(eventID_all), len(sids_all))
 
-data_extraction_path = '/media/usr/HDD/Data/NAVER_df'
-filtered_ID = [eventID for eventID in eventID_all if eventID in os.listdir(data_extraction_path)]
+# data_extraction_path = '/media/usr/HDD/Data/NAVER_df'
+# filtered_ID = [eventID for eventID in eventID_all if eventID in os.listdir(data_extraction_path)]
 
 ## load accident_all
 accident_all = pd.read_csv('../data/accident_all.csv', index_col=0)
@@ -95,8 +95,8 @@ print("# of filtered Events = ", len(accident_all))
 def main(args, target_sid, eventID):
     set_seed(args.seed)
   
-    checkpoints_path=f'./checkpoints_SAD/{args.exp_name}+bestcheckpoint.pt'
-    logging.basicConfig(filename=f"./log/{args.exp_name}.log",filemode="a",format="%(asctime)s-%(name)s-%(levelname)s-%(message)s",level=logging.INFO)
+    checkpoints_path=f'./checkpoints_SAD_again/{args.exp_name}+bestcheckpoint.pt'
+    logging.basicConfig(filename=f"./log_SAD_again/{args.exp_name}.log",filemode="a",format="%(asctime)s-%(name)s-%(levelname)s-%(message)s",level=logging.INFO)
     logger=logging.getLogger('DeepSAD')
 
     eventID = str(eventID)
@@ -109,7 +109,7 @@ def main(args, target_sid, eventID):
     # Model Train
     input_dim = 24
     print(args)
-    model = init_model(args, input_dim)
+    model = init_model(args, input_dim).to(device=f'cuda:{args.gpu}')
     model = DeepSAD_trainer.train(args, logger, train_loader, val_loader, test_loader, model, checkpoints_path)
 
 
