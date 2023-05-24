@@ -32,16 +32,16 @@ class GAT(torch.nn.Module):
     
 
 class GAT_gc(torch.nn.Module):
-    def __init__(self, n_layers, in_dim, n_hidden, out_dim, activation, drop_ratio, readout_type='sum', reverse=False):
+    def __init__(self, n_layers, in_dim, n_hidden, out_dim, heads, activation, drop_ratio, negative_slope, readout_type='sum', reverse=False):
         super().__init__()
         self.layers = nn.ModuleList()
         # input layer
-        self.layers.append(GATConv(in_dim, n_hidden))
+        self.layers.append(GATConv(in_dim, n_hidden, heads[0]))
         # hidden layer
         for i in range(n_layers - 1):
-            self.layers.append(GATConv(n_hidden, n_hidden))
+            self.layers.append(GATConv(n_hidden*heads[i], n_hidden, heads[i+1], negative_slope=negative_slope, dropout=drop_ratio))
         # output layer
-        self.outlayer = GATConv(n_hidden, out_dim)
+        self.outlayer = GATConv(n_hidden*heads[i], out_dim, heads[-1])
 
         self.dropout = nn.Dropout(p=drop_ratio)
 

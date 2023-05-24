@@ -1,6 +1,6 @@
 import torch.nn.functional as F
 from networks_pyg.GCN import GCN, GCN_gc, GCN_traffic
-# from networks_pyg.GAT import GAT
+from networks_pyg.GAT import GAT_gc
 # from networks_pyg.GAE import GAE
 # from networks_pyg.GIN import GIN
 from networks_pyg.GraphSAGE import GraphSAGE, GraphSAGE_gc
@@ -28,6 +28,18 @@ def init_model(args,input_dim):
                 args.dropout,
                 readout_type=args.pooling,
                 reverse=args.reverse) # mean, sum, max, #sagpool
+    if args.module== 'GAT_gc':
+        model = GAT_gc(
+                args.n_layers,
+                input_dim,
+                args.n_hidden*2,
+                args.n_hidden,
+                heads=([8] * args.n_layers) + [1],
+                activation=F.relu,
+                drop_ratio=args.dropout,
+                negative_slope=0.2,
+                readout_type=args.pooling,
+                reverse=args.reverse)
     # if args.module== 'GCN_traffic':
     #     model = GCN_traffic(
     #             args.n_layers,
@@ -69,18 +81,7 @@ def init_model(args,input_dim):
                 readout_type=args.pooling,
                 reverse=args.reverse)
 
-    # if args.module== 'GAT':
-    #     model = GAT(None,
-    #             args.n_layers,
-    #             input_dim,
-    #             args.n_hidden*2,
-    #             args.n_hidden,
-    #             heads=([8] * args.n_layers) + [1],
-    #             activation=F.relu,
-    #             feat_drop=args.dropout,
-    #             attn_drop=args.dropout,
-    #             negative_slope=0.2,
-    #             residual=False)
+
 #     if args.module== 'GIN':
 #         model = GIN(num_layers=args.n_layers, 
 #                     num_mlp_layers=2, #1 means linear model.
