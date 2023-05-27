@@ -199,7 +199,7 @@ class TemporalConvLayer(nn.Module):
 
 
 class STblock(torch.nn.Module):
-    def __init__(self, last_block_channel, channels, ts_dim, activation, drop_ratio):
+    def __init__(self, last_block_channel, channels, ts_dim, activation, drop_ratio, bias=True):
         super().__init__()
         # self.stblocks = nn.ModuleList()
         # self.layers = nn.ModuleList()
@@ -210,7 +210,7 @@ class STblock(torch.nn.Module):
         self.kernel_size = 3  ### ????
         # [bs, c_in, ts, n_vertex]
         self.tmp_conv1 = TemporalConvLayer(self.kernel_size, last_block_channel, channels[0], 'glu')
-        self.graph_conv = GCNConv(channels[0], channels[1])
+        self.graph_conv = GCNConv(channels[0], channels[1], bias=bias)
         self.tmp_conv2 = TemporalConvLayer(self.kernel_size, channels[1], channels[2], 'glu')
 
         self.relu = nn.ReLU()
@@ -244,22 +244,24 @@ class STblock(torch.nn.Module):
 
 
 class STGCN(torch.nn.Module):
-    def __init__(self, n_layers, in_dim, n_hidden, out_dim, activation, drop_ratio, readout_type, reverse=False):
+    def __init__(self, n_layers, in_dim, n_hidden, out_dim, activation, drop_ratio, readout_type, reverse=False, bias=True):
         super().__init__()
 
         self.stblocks = nn.ModuleList()
         last_block_channel = 1
-        channel = [2, 4, 8]
+        channel = [1, 2, 4]
         kernel_size = 3
         ts_dim = in_dim
 
         for i in range(n_layers):
-            channel = channel * 2
-            if i == n_layers-1:
-                channel[-1] = out_dim
+            # if i == n_layers-1:
+            #     channel[-1] = out_dim
             ts_dim = in_dim - 2*kernel_size*i + 2*i
-            self.stblocks.append(STblock(last_block_channel, channel, ts_dim, 'relu', drop_ratio))
+            self.stblocks.append(STblock(last_block_channel, channel, ts_dim, 'relu', drop_ratio, bias))
             last_block_channel = channel[-1]
+            channel = [2*c for c in channel]
+        ts_dim = in_dim - 2*kernel_size*n_layers + 2*n_layers
+        self.outlayer = GCNConv(last_block_channel*ts_dim, out_dim, bias=bias)
 
         # readout layer
         self.readout = readout_type
@@ -282,6 +284,7 @@ class STGCN(torch.nn.Module):
             x = x.squeeze(0).permute(0, 2, 1)
 
         x = x.permute(1,0,2).reshape(len(batch), -1) 
+        x = self.outlayer(x, edge_index)
 
 
         if self.readout == 'mean':

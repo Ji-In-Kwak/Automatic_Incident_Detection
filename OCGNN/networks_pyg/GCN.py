@@ -30,16 +30,16 @@ class GCN(torch.nn.Module):
     
 
 class GCN_gc(torch.nn.Module):
-    def __init__(self, n_layers, in_dim, n_hidden, out_dim, activation, drop_ratio, readout_type='sum', reverse=False):
+    def __init__(self, n_layers, in_dim, n_hidden, out_dim, activation, drop_ratio, readout_type='sum', reverse=False, bias=True):
         super().__init__()
         self.layers = nn.ModuleList()
         # input layer
-        self.layers.append(GCNConv(in_dim, n_hidden))
+        self.layers.append(GCNConv(in_dim, n_hidden, bias=bias))
         # hidden layer
         for i in range(n_layers - 1):
-            self.layers.append(GCNConv(n_hidden, n_hidden))
+            self.layers.append(GCNConv(n_hidden, n_hidden, bias=bias))
         # output layer
-        self.outlayer = GCNConv(n_hidden, out_dim)
+        self.outlayer = GCNConv(n_hidden, out_dim, bias=bias)
 
         
         self.dropout = nn.Dropout(p=drop_ratio)

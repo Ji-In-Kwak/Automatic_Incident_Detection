@@ -53,20 +53,21 @@ class GraphSAGE_gc(nn.Module):
                  dropout,
                  aggregator_type,
                  readout_type,
-                 reverse=False):
+                 reverse=False,
+                 bias=True):
         # super(GraphSAGE, self).__init__()
         super().__init__()
         self.layers = nn.ModuleList()
 
         # input layer
-        self.layers.append(SAGEConv(in_feats, n_hidden, aggregator_type, bias=True))
+        self.layers.append(SAGEConv(in_feats, n_hidden, aggregator_type, bias=bias))
         # self.layers.append(nn.ReLU())
         # hidden layers
         for i in range(n_layers - 1):
-            self.layers.append(SAGEConv(n_hidden, n_hidden, aggregator_type, bias=True))
+            self.layers.append(SAGEConv(n_hidden, n_hidden, aggregator_type, bias=bias))
             # self.layers.append(nn.ReLU())
         # output layer
-        self.outlayer = SAGEConv(n_hidden, n_classes, aggregator_type, bias=True) # activation None
+        self.outlayer = SAGEConv(n_hidden, n_classes, aggregator_type, bias=bias) # activation None
 
         self.dropout = nn.Dropout(p=dropout)
 

@@ -27,7 +27,8 @@ def init_model(args,input_dim):
                 F.relu,
                 args.dropout,
                 readout_type=args.pooling,
-                reverse=args.reverse) # mean, sum, max, #sagpool
+                reverse=args.reverse,
+                bias=args.bias) # mean, sum, max, #sagpool
     if args.module== 'GAT_gc':
         model = GAT_gc(
                 args.n_layers,
@@ -39,7 +40,8 @@ def init_model(args,input_dim):
                 drop_ratio=args.dropout,
                 negative_slope=0.2,
                 readout_type=args.pooling,
-                reverse=args.reverse)
+                reverse=args.reverse,
+                )
     # if args.module== 'GCN_traffic':
     #     model = GCN_traffic(
     #             args.n_layers,
@@ -68,7 +70,8 @@ def init_model(args,input_dim):
                 args.dropout,
                 aggregator_type='SoftmaxAggregation',
                 readout_type=args.pooling,
-                reverse=args.reverse) 
+                reverse=args.reverse,
+                bias=args.bias) 
 
     if args.module == 'STGCN':
         model = STGCN(
@@ -79,7 +82,8 @@ def init_model(args,input_dim):
                 F.relu, 
                 args.dropout, 
                 readout_type=args.pooling,
-                reverse=args.reverse)
+                reverse=args.reverse,
+                bias=args.bias)
 
 
 #     if args.module== 'GIN':

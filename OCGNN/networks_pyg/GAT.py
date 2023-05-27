@@ -32,16 +32,16 @@ class GAT(torch.nn.Module):
     
 
 class GAT_gc(torch.nn.Module):
-    def __init__(self, n_layers, in_dim, n_hidden, out_dim, heads, activation, drop_ratio, negative_slope, readout_type='sum', reverse=False):
+    def __init__(self, n_layers, in_dim, n_hidden, out_dim, heads, activation, drop_ratio, negative_slope, readout_type='sum', reverse=False, bias=True):
         super().__init__()
         self.layers = nn.ModuleList()
         # input layer
-        self.layers.append(GATConv(in_dim, n_hidden, heads[0]))
+        self.layers.append(GATConv(in_dim, n_hidden, heads[0], bias=bias))
         # hidden layer
         for i in range(n_layers - 1):
-            self.layers.append(GATConv(n_hidden*heads[i], n_hidden, heads[i+1], negative_slope=negative_slope, dropout=drop_ratio))
+            self.layers.append(GATConv(n_hidden*heads[i], n_hidden, heads[i+1], negative_slope=negative_slope, dropout=drop_ratio, bias=bias))
         # output layer
-        self.outlayer = GATConv(n_hidden*heads[i], out_dim, heads[-1])
+        self.outlayer = GATConv(n_hidden*heads[i], out_dim, heads[-1], bias=bias)
 
         self.dropout = nn.Dropout(p=drop_ratio)
 
@@ -61,6 +61,7 @@ class GAT_gc(torch.nn.Module):
             if i != 0:
                 x = self.dropout(x)
             x = F.relu(x)
+        x = self.outlayer(x, edge_index)
         
         if self.readout == 'mean':
             x = global_mean_pool(x, batch)
