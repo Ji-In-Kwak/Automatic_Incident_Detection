@@ -9,6 +9,7 @@ from tqdm import tqdm
 from sklearn.metrics import *
 import torch
 import torch.nn.functional as F
+import argparse
 
 
 SEED = 0
@@ -27,22 +28,13 @@ accident_all = pd.read_csv('../data/accident_all.csv', index_col=0)
 print("# of filtered Events = ", len(accident_all))
 
 
-# # Profile Extraction Functions
-# def profile_extraction2(speed_all):
-#     # Day of Week => monday : 0, sunday : 6
-#     speed_all['weekday'] = [s.weekday() for s in speed_all.index]
-#     speed_all['timestamp'] = [s.time() for s in speed_all.index]
-    
-#     profile_mean = speed_all.groupby(['weekday', 'timestamp']).mean()
-#     profile_std = speed_all.groupby(['weekday', 'timestamp']).std()
-    
-#     speed_all = speed_all.drop(['weekday', 'timestamp'], axis=1)
-    
-#     return speed_all, profile_mean, profile_std
+# parser = argparse.ArgumentParser(description='desc')
+# parser.add_argument('--target-sid', required=True, type=int, help='incident road sid')
+# args = parser.parse_args()
 
 
-
-target_sid = 1210005301  ## 1210005301    ## 1030001902
+target_sid = 1210005301  ## 1210005301  ## 1030001902  ## 1220005401  ## 1210003000  ## 1130052300
+# target_sid = args.target_sid
 accident_case = accident_all[accident_all.loc[:, 'accident_sid'] == target_sid]
 eventID = accident_case.eventId.iloc[0]
 normalize = 'standard'
@@ -50,8 +42,8 @@ normalize = 'standard'
 
 ## Data Loading
 print('Data Loading ....')
-target_sid = 1210005301
-dataset = '{}_mtsc'.format(target_sid)
+dataset = '{}_newdata2'.format(target_sid)
+print('dataset = ', dataset)
 
 train = np.load('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/train.npz'.format(dataset))
 val = np.load('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/val.npz'.format(dataset))
@@ -242,29 +234,6 @@ result_all = []
 ## Multivariate ###
 ##################################
 
-# Supervised
-## Data
-# from sklearn.decomposition import PCA
-
-# train_data, test_data = [], []
-# train_label_cls, test_label_cls = [], []
-
-# for i in tqdm(range(train_df.shape[0]-24)):
-#     train_data.append(train_df.iloc[i:i+24].values.reshape(-1))
-#     if 1 in train_label.iloc[i:i+24]['label'].values:
-#         train_label_cls.append(1)
-#     else:
-#         train_label_cls.append(0) ## make train data into vector format with reshape(-1)
-# for i in tqdm(range(test_df.shape[0]-24)):
-#     test_data.append(test_df.iloc[i:i+24].values.reshape(-1))
-#     test_label_cls.append(test_label.iloc[i+24].values)
-# train_data = np.stack(train_data)
-# test_data = np.stack(test_data)
-
-# pca_1d = PCA(n_components=32)
-# train_data_1d = pca_1d.fit_transform(train_data)
-# test_data_1d = pca_1d.transform(test_data)
-# train_data_1d.shape, test_data_1d.shape
 
 
 # DATA
@@ -332,11 +301,11 @@ train_label = train['y']
 test_label = test['y']
 
 
-# CNN
-print('Multivariate CNN')
-from sktime.classification.deep_learning import CNNClassifier
+# MLP
+print('Multivariate MLP')
+from sktime.classification.deep_learning import MLPClassifier
 
-clf = CNNClassifier(n_epochs=100, batch_size=64, random_state=0)
+clf = MLPClassifier(n_epochs=200, batch_size=64, random_state=0)
 clf.fit(train_data, train_label)
 
 true = test_label
@@ -344,14 +313,30 @@ pred = clf.predict(test_data)
 score = clf.predict_proba(test_data)[:, 1]
 
 acc, auc, far, pre, rec, macro_f1, weight_f1, ap = evaluate(true, pred, score, adjust=False, plot=False, print_=False)
-result_all.append(['multivariate', 'CNN', rec, far, pre, rec, acc, auc, macro_f1, weight_f1, ap])
+result_all.append(['multivariate', 'Time-MLP', rec, far, pre, rec, acc, auc, macro_f1, weight_f1, ap])
+
+
+
+# CNN
+print('Multivariate CNN')
+from sktime.classification.deep_learning import CNNClassifier
+
+clf = CNNClassifier(n_epochs=200, batch_size=64, random_state=0)
+clf.fit(train_data, train_label)
+
+true = test_label
+pred = clf.predict(test_data)
+score = clf.predict_proba(test_data)[:, 1]
+
+acc, auc, far, pre, rec, macro_f1, weight_f1, ap = evaluate(true, pred, score, adjust=False, plot=False, print_=False)
+result_all.append(['multivariate', 'Time-CNN', rec, far, pre, rec, acc, auc, macro_f1, weight_f1, ap])
 
 
 # LSTM-FCN
 print('Multivariate LSTM-FCN')
 from sktime.classification.deep_learning import LSTMFCNClassifier
 
-clf = LSTMFCNClassifier(n_epochs=100, batch_size=64, random_state=0, verbose=True)
+clf = LSTMFCNClassifier(n_epochs=200, batch_size=64, random_state=0, verbose=True)
 clf.fit(train_data, train_label)
 
 true = test_label
@@ -360,6 +345,31 @@ score = clf.predict_proba(test_data)[:, 1]
 
 acc, auc, far, pre, rec, macro_f1, weight_f1, ap = evaluate(true, pred, score, adjust=False, plot=False, print_=False)
 result_all.append(['multivariate', 'LSTM-FCN', rec, far, pre, rec, acc, auc, macro_f1, weight_f1, ap])
+
+
+
+# DevNet
+print('DevNet')
+
+# DATA
+train_data = train['x'].reshape(train['x'].shape[0], -1)  ## (n_samples, seq_len * n_node)
+test_data = test['x'].reshape(test['x'].shape[0], -1)
+
+train_label = np.where(train['y']==1, 1, train['y'])
+test_label = np.where(test['y']==1, 1, test['y'])   ## 1 is known anomaly, 0 is unknown
+
+from deepod.models.devnet import DevNet
+
+clf = DevNet(epochs=200, batch_size=64, device='cpu', random_state=0)
+clf.fit(train_data, train_label)
+
+true = test['y']
+pred = clf.predict(test_data)
+score = clf.decision_function(test_data)
+
+acc, auc, far, pre, rec, macro_f1, weight_f1, ap = evaluate(true, pred, score, adjust=False, plot=False, print_=False)
+result_all.append(['multivariate', 'DevNet', rec, far, pre, rec, acc, auc, macro_f1, weight_f1, ap])
+
 
 
 # DeepSAD
@@ -374,7 +384,7 @@ test_label = np.where(test['y']==1, -1, test['y'])   ## -1 is known anomaly, 0 i
 
 from deepod.models.dsad import DeepSAD
 
-clf = DeepSAD(epochs=100, rep_dim=128, batch_size=64, device='cpu', random_state=0)
+clf = DeepSAD(epochs=200, rep_dim=128, batch_size=64, device='cpu', random_state=0)
 clf.fit(train_data, train_label)
 
 true = test['y']
@@ -383,6 +393,8 @@ score = clf.decision_function(test_data)
 
 acc, auc, far, pre, rec, macro_f1, weight_f1, ap = evaluate(true, pred, score, adjust=False, plot=False, print_=False)
 result_all.append(['multivariate', 'DeepSAD', rec, far, pre, rec, acc, auc, macro_f1, weight_f1, ap])
+
+
 
 
 
