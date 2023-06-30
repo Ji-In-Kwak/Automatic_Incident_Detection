@@ -30,7 +30,6 @@ from datasets.Myloader import traffic_mtsc_loader
 from optim import DeepSAD_trainer
 from optim.loss import loss_function,init_center
 from datasets import dataloader_pyg as dataloader
-# from datasets import Myloader
 from networks_pyg.init import init_model
 
 
@@ -49,68 +48,21 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-# # Data Loading
-# data_root_path = '/media/usr/HDD/Data/NAVER'
-# partition_list = os.listdir(data_root_path)
-# partition_list = [p for p in partition_list if p[0]=='2']
-# partition_list = np.sort(partition_list)
 
-# data_path = '/media/usr/HDD/Working/Naver_Data/data_parsing'
-
-# sids_all = []
-# eventID_all = []
-
-# for partition in partition_list:
-#     try: 
-#         eventID_list = [filename.split('.')[0] for filename in os.listdir(os.path.join(data_path, 'networks', partition)) if filename[0] != '.']
-#         eventID_list = np.unique(eventID_list)
-#         eventID_all.append(eventID_list)
-
-#         for eventID in eventID_list:
-#             with open(os.path.join(data_path, 'networks', partition, '{}.pickle'.format(eventID)), 'rb') as f:
-#                 accident_info = pickle.load(f)
-#             G = nx.read_gpickle(os.path.join(data_path, 'networks', partition, '{}.gpickle'.format(eventID)))
-
-#             sids_all.append(accident_info[1])
-#             sids_all.append(accident_info[2])
-#     except:
-#         continue
-
-# eventID_all = [x for y in eventID_all for x in y]
-# eventID_all = np.unique(eventID_all)
-        
-# sids_all = [x for y in sids_all for x in y]
-# sids_all = np.unique(sids_all)
-
-# print('# of all Events, # of sids = ', len(eventID_all), len(sids_all))
-
-# data_extraction_path = '/media/usr/HDD/Data/NAVER_df'
-# filtered_ID = [eventID for eventID in eventID_all if eventID in os.listdir(data_extraction_path)]
-
-## load accident_all
-accident_all = pd.read_csv('../data/accident_all.csv', index_col=0)
-print("# of filtered Events = ", len(accident_all))
-
-
-def main(args, target_sid, eventID):
+def main(args):
     set_seed(args.seed)
 
 ###############################################################
-    args.bias = False
+    args.bias = True
 ###############################################################
 
-    checkpoints_path=f'./checkpoints_sensitivity/{args.exp_name}+bestcheckpoint.pt'
-    logging.basicConfig(filename=f"./log_SAD/{args.exp_name}.log",filemode="a",format="%(asctime)s-%(name)s-%(levelname)s-%(message)s",level=logging.INFO)
+    os.makedirs(f'./checkpoints_SAD_mtsc/{args.dataset}', exist_ok=True)
+    checkpoints_path=f'./checkpoints_SAD_mtsc/{args.dataset}/{args.exp_name}+bestcheckpoint.pt'
+    logging.basicConfig(filename=f"./log_SAD_mtsc/{args.exp_name}.log",filemode="a",format="%(asctime)s-%(name)s-%(levelname)s-%(message)s",level=logging.INFO)
     logger=logging.getLogger('DeepSAD')
-
-    eventID = str(eventID)
 
 
     # DataLoader
-#     if '3cls' in args.dataset:
-#         train_loader, val_loader, test_loader = traffic_cls_loader(args, target_sid)  ###### recurrent vs nonrecurrent
-#     else:
-#         train_loader, val_loader, test_loader = traffic_loader(args, target_sid, method = 'semisup')  ###### incident label도 포함하게 수정
     train_loader, val_loader, test_loader = traffic_mtsc_loader(args)
     print(len(train_loader), len(val_loader), len(test_loader))
 
@@ -120,6 +72,8 @@ def main(args, target_sid, eventID):
     model = init_model(args, input_dim).to(device=f'cuda:{args.gpu}')
     model = DeepSAD_trainer.train(args, logger, train_loader, val_loader, test_loader, model, checkpoints_path)
 
+    
+    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='DeepSAD')
@@ -142,8 +96,6 @@ if __name__ == '__main__':
             help='batch size')
     parser.add_argument("--lr", type=float, default=1e-3,
             help="learning rate")
-    parser.add_argument("--normal-class", type=int, default=0,
-            help="normal class")
     parser.add_argument("--n-epochs", type=int, default=50,
             help="number of training epochs")
     parser.add_argument("--n-hidden", type=int, default=32,
@@ -184,16 +136,9 @@ if __name__ == '__main__':
     # if args.module=='GraphSAGE':
     #     args.self_loop=True
 
-    # if args.dataset in ('citeseer' + 'reddit'):
-    #     args.normal_class=3
-    # if args.dataset in ('cora' + 'pubmed'):
-    #     args.normal_class=2
-    # if args.dataset in 'TU_PROTEINS_full':
-    #     args.normal_class=0
 
+#     target_sid = 1210005301   ## 1210005301  ## 1030001902  ## 1220005401  ## 1210003000  ## 1130052300
+#     accident_case = accident_all[accident_all.loc[:, 'accident_sid'] == target_sid]
+#     eventID = accident_case.eventId.iloc[0]
 
-    target_sid = 1210005301   ## 1030001902   ## 1210005301
-    accident_case = accident_all[accident_all.loc[:, 'accident_sid'] == target_sid]
-    eventID = accident_case.eventId.iloc[0]
-
-    fire.Fire(main(args, target_sid, eventID))
+    fire.Fire(main(args))

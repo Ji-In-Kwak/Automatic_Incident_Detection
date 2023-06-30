@@ -28,21 +28,20 @@ accident_all = pd.read_csv('../data/accident_all.csv', index_col=0)
 print("# of filtered Events = ", len(accident_all))
 
 
-# parser = argparse.ArgumentParser(description='desc')
-# parser.add_argument('--target-sid', required=True, type=int, help='incident road sid')
-# args = parser.parse_args()
+parser = argparse.ArgumentParser(description='desc')
+parser.add_argument('--target-sid', required=True, type=int, help='incident road sid')
+args = parser.parse_args()
 
 
-target_sid = 1210005301  ## 1210005301  ## 1030001902  ## 1220005401  ## 1210003000  ## 1130052300
-# target_sid = args.target_sid
-accident_case = accident_all[accident_all.loc[:, 'accident_sid'] == target_sid]
-eventID = accident_case.eventId.iloc[0]
-normalize = 'standard'
+# target_sid = 1210005301  ## 1210005301  ## 1030001902  ## 1220005401  ## 1210003000  ## 1130052300
+target_sid = args.target_sid
+# accident_case = accident_all[accident_all.loc[:, 'accident_sid'] == target_sid]
+# eventID = accident_case.eventId.iloc[0]
 
 
 ## Data Loading
 print('Data Loading ....')
-dataset = '{}_newdata2'.format(target_sid)
+dataset = '{}_mtsc'.format(target_sid)
 print('dataset = ', dataset)
 
 train = np.load('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/train.npz'.format(dataset))
@@ -76,8 +75,6 @@ H = nx.read_gpickle("../data/{}/sensor_graph.gpickle".format(dataset))
 
 
 def evaluate(true, pred, score, adjust = False, plot=False, print_=False):
-#     true = label_all
-#     pred = list(map(int, [s>0 for s in score_all]))
     if adjust:
         pred = adjust_predictions(pred, true)
     CM = confusion_matrix(true, pred)
