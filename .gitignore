@@ -10,4 +10,7 @@ data/
 *.pt
 *.csv
 *.png
+*.pdf
 
+## tmp
+Multi_hypersphere/
