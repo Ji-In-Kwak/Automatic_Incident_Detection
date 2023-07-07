@@ -5,6 +5,7 @@ from networks_pyg.GAT import GAT_gc
 # from networks_pyg.GIN import GIN
 from networks_pyg.GraphSAGE import GraphSAGE, GraphSAGE_gc
 from networks_pyg.STGCN import STGCN
+from networks_pyg.STGAT import STGAT
 from networks_pyg.GatedGCN import GatedGCN
 
 
@@ -41,6 +42,7 @@ def init_model(args,input_dim):
                 negative_slope=0.2,
                 readout_type=args.pooling,
                 reverse=args.reverse,
+                bias=args.bias
                 )
     # if args.module== 'GCN_traffic':
     #     model = GCN_traffic(
@@ -81,6 +83,19 @@ def init_model(args,input_dim):
                 args.n_hidden, 
                 F.relu, 
                 args.dropout, 
+                readout_type=args.pooling,
+                reverse=args.reverse,
+                bias=args.bias)
+        
+    if args.module == 'STGAT':
+        model = STGAT(
+                args.n_layers, 
+                input_dim, 
+                args.n_hidden,
+                heads=([8] * args.n_layers) + [1],
+                activation=F.relu, 
+                drop_ratio=args.dropout, 
+                negative_slope=0.2,
                 readout_type=args.pooling,
                 reverse=args.reverse,
                 bias=args.bias)

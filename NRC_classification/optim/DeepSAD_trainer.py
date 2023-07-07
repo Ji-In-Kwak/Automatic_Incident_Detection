@@ -32,7 +32,7 @@ def train(args, logger, train_loader, val_loader, test_loader, model, path):
     if args.early_stop:
         stopper = EarlyStopping(patience=100)
     
-    best_val_loss = 99
+    best_val_loss = 99999
     best_val_auc = 0
 
     # initialize data center
@@ -97,15 +97,17 @@ def train(args, logger, train_loader, val_loader, test_loader, model, path):
         # print("Epoch {:05d} | Time(s) {:.4f} | Train Loss {:.4f} | ". format(epoch, np.mean(dur), loss.item()*100000))
         
         # save model
-        # if val_loss <= best_val_loss:
-        #     print("Saving Model Parameters")
-        #     torch.save({'model': model.state_dict(), 'data_center':data_center, 'radius':radius, 'epoch':epoch}, checkpoints_path)
-        #     best_val_loss = val_loss
-        if auc > best_val_auc:
-            print("Saving Model Parameters")
-            logger.info("Saving Model Parameters")
-            torch.save({'model': model.state_dict(), 'data_center':data_center, 'radius':radius, 'epoch':epoch}, checkpoints_path)
-            best_val_auc = auc
+        if auc == 0.0:
+            if val_loss <= best_val_loss:
+                print("Saving Model Parameters")
+                torch.save({'model': model.state_dict(), 'data_center':data_center, 'radius':radius, 'epoch':epoch}, checkpoints_path)
+                best_val_loss = val_loss
+        else:
+            if auc > best_val_auc:
+                print("Saving Model Parameters")
+                logger.info("Saving Model Parameters")
+                torch.save({'model': model.state_dict(), 'data_center':data_center, 'radius':radius, 'epoch':epoch}, checkpoints_path)
+                best_val_auc = auc
                                             
         
         if args.early_stop:
@@ -179,15 +181,23 @@ def graph_anomaly_evaluate(args,path, model, data_center,dataloader,radius,mode=
         # print('score mean',scores_vec.mean())
         # print('labels mean',labels_vec.mean())
         # print('pred mean',pred_vec.mean())
-        auc=roc_auc_score(labels_vec, scores_vec)
-        ap=average_precision_score(labels_vec, scores_vec)
+        if 1 not in labels_vec:
+            acc=accuracy_score(labels_vec,pred_vec)
+            recall=recall_score(labels_vec,pred_vec)
+            precision=precision_score(labels_vec,pred_vec)
+            f1=f1_score(labels_vec,pred_vec)
+            return 0.0,0.0,f1,acc,precision,recall,total_loss
 
-        acc=accuracy_score(labels_vec,pred_vec)
-        recall=recall_score(labels_vec,pred_vec)
-        precision=precision_score(labels_vec,pred_vec)
-        f1=f1_score(labels_vec,pred_vec)
+        else:
+            auc=roc_auc_score(labels_vec, scores_vec)
+            ap=average_precision_score(labels_vec, scores_vec)
 
-    return auc,ap,f1,acc,precision,recall,total_loss
+            acc=accuracy_score(labels_vec,pred_vec)
+            recall=recall_score(labels_vec,pred_vec)
+            precision=precision_score(labels_vec,pred_vec)
+            f1=f1_score(labels_vec,pred_vec)
+
+            return auc,ap,f1,acc,precision,recall,total_loss
 
 def thresholding(recon_error,threshold):
     ano_pred=np.zeros(recon_error.shape[0])

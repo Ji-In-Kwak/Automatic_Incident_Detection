@@ -41,7 +41,7 @@ target_sid = args.target_sid
 
 ## Data Loading
 print('Data Loading ....')
-dataset = '{}_mtsc'.format(target_sid)
+dataset = '{}_mprofile'.format(target_sid)
 print('dataset = ', dataset)
 
 train = np.load('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/train.npz'.format(dataset))

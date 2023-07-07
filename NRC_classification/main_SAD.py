@@ -56,9 +56,10 @@ def main(args):
     args.bias = True
 ###############################################################
 
-    os.makedirs(f'./checkpoints_SAD_mtsc/{args.dataset}', exist_ok=True)
-    checkpoints_path=f'./checkpoints_SAD_mtsc/{args.dataset}/{args.exp_name}+bestcheckpoint.pt'
-    logging.basicConfig(filename=f"./log_SAD_mtsc/{args.exp_name}.log",filemode="a",format="%(asctime)s-%(name)s-%(levelname)s-%(message)s",level=logging.INFO)
+    os.makedirs(f'./checkpoints_SAD_mprofile/{args.dataset}', exist_ok=True)
+    os.makedirs(f'./log_SAD_mprofile/{args.dataset}', exist_ok=True)
+    checkpoints_path=f'./checkpoints_SAD_mprofile/{args.dataset}/{args.exp_name}+bestcheckpoint.pt'
+    logging.basicConfig(filename=f"./log_SAD_mprofile/{args.exp_name}.log",filemode="a",format="%(asctime)s-%(name)s-%(levelname)s-%(message)s",level=logging.INFO)
     logger=logging.getLogger('DeepSAD')
 
 
@@ -67,7 +68,7 @@ def main(args):
     print(len(train_loader), len(val_loader), len(test_loader))
 
     # Model Train
-    input_dim = 12
+    input_dim = 24
     print(args)
     model = init_model(args, input_dim).to(device=f'cuda:{args.gpu}')
     model = DeepSAD_trainer.train(args, logger, train_loader, val_loader, test_loader, model, checkpoints_path)
