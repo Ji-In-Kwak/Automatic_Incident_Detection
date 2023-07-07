@@ -38,7 +38,7 @@ def profile_extraction2(speed_all):
     return speed_all2, profile_mean, profile_std
 
 
-target_sid = 1210005301 ## 1030001902    ## 1210005301
+target_sid = 1210005301   ## 1210005301  ## 1030001902  ## 1220005401  ## 1210003000  ## 1130052300
 accident_case = accident_all[accident_all.loc[:, 'accident_sid'] == target_sid]
 eventID = accident_case.eventId.iloc[0]
 normalize = 'standard'
