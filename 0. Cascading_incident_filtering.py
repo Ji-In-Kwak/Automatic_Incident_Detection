@@ -61,7 +61,7 @@ print('filtered events : ', len(filtered_ID))
 target_all = []
 for eventID in tqdm(filtered_ID):
     try:
-        with open('../Duration Estimation Thesis/feature_extraction/target/{}'.format(eventID), 'rb') as f:
+        with open('/media/usr/SSD/jiin/naver/Done/Duration Estimation Thesis/feature_extraction/target/{}'.format(eventID), 'rb') as f:
             out = pickle.load(f)
     except:
         continue
@@ -96,4 +96,5 @@ for eventID in filtered_ID:
 accident_all = pd.DataFrame(accident_info_all)
 accident_all['accident_sid'] = accident_all['sids'].apply(lambda s: s[0])
 
+os.makedirs('data', exist_ok=True)
 accident_all.to_csv('data/accident_all.csv')

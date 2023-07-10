@@ -37,8 +37,12 @@ def profile_extraction2(speed_all):
     
     return speed_all2, profile_mean, profile_std
 
+parser = argparse.ArgumentParser(description='data_preprocessing')
+parser.add_argument("--target-sid", type=int, default=1210005301, help="incident road sid")
+args = parser.parse_args()
 
-target_sid = 1130052300   ## 1210005301  ## 1030001902  ## 1220005401  ## 1210003000  ## 1130052300
+# target_sid = 1130052300   ## 1210005301  ## 1030001902  ## 1220005401  ## 1210003000  ## 1130052300
+target_sid = args.target_sid
 accident_case = accident_all[accident_all.loc[:, 'accident_sid'] == target_sid]
 eventID = accident_case.eventId.iloc[0]
 normalize = 'standard'
@@ -87,7 +91,6 @@ elif normalize == 'minmax':
     df_all_norm = pd.DataFrame(arr_scaled, columns=speed_all.columns,index=speed_all.index)
 elif normalize == 'profile':
     ## profile extraction
-    # profile_all = profile_extraction(df_all_norm)
     speed_all, profile_mean, profile_std = profile_extraction2(speed_all)
 
     ## profile normalization
@@ -150,8 +153,7 @@ accident_case['created'] = pd.to_datetime(accident_case['created'])
 for ix, row in accident_case.iterrows():
     t = row['created']
     accident_sid = row['accident_sid']
-#     if (t.month != 1) and (t.month != 12):
-#         continue
+
     if (t.month == 2):
         continue
 
@@ -237,14 +239,14 @@ print(train_y.mean(), val_y.mean(), test_y.mean())
 
 dataset = '{}_mprofile'.format(target_sid)
 print(dataset)
-os.makedirs('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}'.format(dataset), exist_ok=True)
+os.makedirs('./data/{}'.format(dataset), exist_ok=True)
 
-np.savez('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/train.npz'.format(dataset), x=train_X, y=train_y)
-np.savez('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/val.npz'.format(dataset), x=val_X, y=val_y)
-np.savez('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/test.npz'.format(dataset), x=test_X, y=test_y)
+np.savez('./data/{}/train.npz'.format(dataset), x=train_X, y=train_y)
+np.savez('./data/{}/val.npz'.format(dataset), x=val_X, y=val_y)
+np.savez('./data/{}/test.npz'.format(dataset), x=test_X, y=test_y)
 
 
 ## network graph
 sid_list = list(map(int, train_df.columns))
 H = nx.subgraph(H, sid_list)
-nx.write_gpickle(H.copy(), "/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/sensor_graph.gpickle".format(dataset))
+nx.write_gpickle(H.copy(), "./data/{}/sensor_graph.gpickle".format(dataset))

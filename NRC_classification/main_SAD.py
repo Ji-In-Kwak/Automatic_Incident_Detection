@@ -57,7 +57,7 @@ def main(args):
 ###############################################################
 
     os.makedirs(f'./checkpoints_SAD_mprofile/{args.dataset}', exist_ok=True)
-    os.makedirs(f'./log_SAD_mprofile/{args.dataset}', exist_ok=True)
+    os.makedirs(f'./log_SAD_mprofile', exist_ok=True)
     checkpoints_path=f'./checkpoints_SAD_mprofile/{args.dataset}/{args.exp_name}+bestcheckpoint.pt'
     logging.basicConfig(filename=f"./log_SAD_mprofile/{args.exp_name}.log",filemode="a",format="%(asctime)s-%(name)s-%(levelname)s-%(message)s",level=logging.INFO)
     logger=logging.getLogger('DeepSAD')

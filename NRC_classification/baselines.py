@@ -30,48 +30,50 @@ print("# of filtered Events = ", len(accident_all))
 
 parser = argparse.ArgumentParser(description='desc')
 parser.add_argument('--target-sid', required=True, type=int, help='incident road sid')
+parser.add_argument('--data-type', required=True, type=str, help='data preprocessing type')
 args = parser.parse_args()
 
 
 # target_sid = 1210005301  ## 1210005301  ## 1030001902  ## 1220005401  ## 1210003000  ## 1130052300
-target_sid = args.target_sid
 # accident_case = accident_all[accident_all.loc[:, 'accident_sid'] == target_sid]
 # eventID = accident_case.eventId.iloc[0]
 
 
 ## Data Loading
 print('Data Loading ....')
-dataset = '{}_mprofile'.format(target_sid)
+target_sid = args.target_sid
+data_type = args.data_type
+dataset = '{}_{}'.format(target_sid, data_type)
 print('dataset = ', dataset)
 
-train = np.load('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/train.npz'.format(dataset))
-val = np.load('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/val.npz'.format(dataset))
-test = np.load('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/test.npz'.format(dataset))
+train = np.load('../data/{}/train.npz'.format(dataset))
+val = np.load('../data/{}/val.npz'.format(dataset))
+test = np.load('../data/{}/test.npz'.format(dataset))
 
 H = nx.read_gpickle("../data/{}/sensor_graph.gpickle".format(dataset))
 
 
 ## Evaluation
-# def adjust_predictions(predictions, labels):
-#     adjustment_started = False
-#     new_pred = predictions
+def adjust_predictions(predictions, labels):
+    adjustment_started = False
+    new_pred = predictions
 
-#     for i in range(len(predictions)):
-#         if (labels[i] == 1) & (predictions[i] == 1):
-#             if not adjustment_started:
-#                 adjustment_started = True
-#                 for j in range(i, 0, -1):
-#                     if labels[j] == 1:
-#                         new_pred[j] = 1
-#                     else:
-#                         break
-#         else:
-#             adjustment_started = False
+    for i in range(len(predictions)):
+        if (labels[i] == 1) & (predictions[i] == 1):
+            if not adjustment_started:
+                adjustment_started = True
+                for j in range(i, 0, -1):
+                    if labels[j] == 1:
+                        new_pred[j] = 1
+                    else:
+                        break
+        else:
+            adjustment_started = False
 
-#         if adjustment_started:
-#             new_pred[i] = 1
+        if adjustment_started:
+            new_pred[i] = 1
 
-#     return new_pred
+    return new_pred
 
 
 def evaluate(true, pred, score, adjust = False, plot=False, print_=False):
@@ -462,5 +464,6 @@ result_all.append(['multivariate', 'DeepSAD', rec, far, pre, rec, acc, auc, macr
 
 #############################################################
 
+os.makedirs('result/', exist_ok=True)
 result_all = pd.DataFrame(result_all, columns=['Method', 'model', 'DR', 'far', 'precision', 'recall', 'acc', 'AUC', 'F1_macro', 'F1_weight', 'AP'])
 result_all.to_csv(f'result/{dataset}_baselines.csv')
