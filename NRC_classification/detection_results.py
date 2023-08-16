@@ -177,7 +177,7 @@ for normalize in ['standard']:
         train_loader, val_loader, test_loader = traffic_mtsc_loader(args)
         print("##############################")
 
-        for nu in [0.01, 0.1, 0.2, 0.3, 0.4, 0.5]:
+        for nu in [0.01, 0.03, 0.05, 0.1, 0.2, 0.3]:
             for name, module in zip(['GCN', 'GAT', 'GraphSAGE', 'STGCN',], ['GCN_gc','GAT_gc', 'GraphSAGE_gc', 'STGCN']):
                 args.module=module
                 args.nu = nu

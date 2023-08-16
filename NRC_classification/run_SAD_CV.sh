@@ -9,7 +9,7 @@ self_loop=True
 for k in 0 1 2 3 4 5 6 7 8 9
 do
     echo $k
-    for nu in 0.01 0.1 0.2 0.3 0.4 0.5
+    for nu in 0.01 0.03 0.05 0.1 0.2 0.3
     do
         python main_SAD_CV.py --dataset ${dataset} --kfold ${k} --normalize standard --module GCN_gc --reverse False --self-loop ${self_loop} --pooling ${pooling} --nu ${nu} --n-epochs 200 --exp-name ${dataset}_${k}_GCN_${pooling}_${nu}_${self_loop}
         python main_SAD_CV.py --dataset ${dataset} --kfold ${k} --normalize standard --module GAT_gc --reverse False --self-loop ${self_loop} --pooling ${pooling} --nu ${nu} --n-epochs 200 --exp-name ${dataset}_${k}_GAT_${pooling}_${nu}_${self_loop} 
