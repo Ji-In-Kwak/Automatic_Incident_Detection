@@ -131,5 +131,17 @@ def init_model(args,input_dim):
 
     return model
 
+
+# def init_ext_model(args, input_dim):
+#     n_subgraph = len(args.dataset)
+#     model_all = []
+    
+#     for i in range(n_subgraph):
+#         model = init_model(args, input_dim)
+#         model_all.append(model)
+        
+#     return model_all
+        
+
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)

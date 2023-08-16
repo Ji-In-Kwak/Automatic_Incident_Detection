@@ -54,6 +54,7 @@ def main(args):
 
 ###############################################################
     args.bias = True
+    args.bidirect = True
 ###############################################################
 
     os.makedirs(f'./checkpoints_SAD_mprofile/{args.dataset}', exist_ok=True)
@@ -81,6 +82,8 @@ if __name__ == '__main__':
 #     register_data_args(parser)
     parser.add_argument("--dataset", type=str, default='cora',
             help="dataset")
+    parser.add_argument("--kfold", type=int, default=None,
+            help="K-fold cross validation")
     parser.add_argument("--dropout", type=float, default=0.25,
             help="dropout probability") 
     parser.add_argument("--nu", type=float, default=0.1, # 0.2 mu를 줄이면 r^2에 focus가 줄어듬

@@ -75,7 +75,7 @@ def train(args, logger, train_loader, val_loader, test_loader, model, path):
         dur.append(time.time() - t0)
 
         # update the radius
-        if epoch % 4 == 0:
+        if epoch % 5 == 0:
             radius.data=torch.tensor(get_radius(dist, args.nu), device=f'cuda:{args.gpu}')
             print("new radius = ", radius)
         # if epoch % 4 == 2:

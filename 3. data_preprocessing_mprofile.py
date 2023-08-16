@@ -189,7 +189,6 @@ for ix, row in accident_case.iterrows():
     congestion_end_list = np.where(df_end_condition==True)[0]
     congestion_end_list = [idx for idx in congestion_end_list if (accident_idx <= idx) & (idx <= accident_idx + 12*4)]
     if len(congestion_end_list) == 0:
-        print("!!!")
         congestion_end_list = [accident_idx+12*4]
     congestion_end_time = df_all_norm.index[congestion_end_list[0]].to_pydatetime()
 

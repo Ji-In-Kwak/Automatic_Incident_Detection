@@ -1,5 +1,5 @@
 from torch_geometric.datasets import Planetoid
-from torch_geometric.utils import dense_to_sparse, remove_self_loops, add_self_loops
+from torch_geometric.utils import dense_to_sparse, remove_self_loops, add_self_loops, to_undirected
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 from torch_geometric.utils.convert import from_networkx
@@ -197,9 +197,14 @@ def traffic_cls_loader(args, target_sid):
     
 def traffic_mtsc_loader(args):
 
-    train = np.load('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/train.npz'.format(args.dataset))
-    val = np.load('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/val.npz'.format(args.dataset))
-    test = np.load('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/test.npz'.format(args.dataset))
+    if args.kfold == None:
+        train = np.load('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/train.npz'.format(args.dataset))
+        val = np.load('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/val.npz'.format(args.dataset))
+        test = np.load('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/test.npz'.format(args.dataset))
+    else:
+        train = np.load('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/train{}.npz'.format(args.dataset, args.kfold))
+        val = np.load('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/val{}.npz'.format(args.dataset, args.kfold))  
+        test = np.load('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/test{}.npz'.format(args.dataset, args.kfold))
 
     # try:
     #     with open('/media/usr/SSD/jiin/naver/Automatic_Incident_Detection/data/{}/adj_mx.pkl'.format(args.dataset), 'rb') as f:
@@ -216,14 +221,16 @@ def traffic_mtsc_loader(args):
 
     def pyg_dataset(H, dataset, labels, mode='train'):
         g_all = []
-        print(mode, 'dataset')
-        for i in tqdm(range(len(dataset))):  
+#         print(mode, 'dataset')
+        for i in (range(len(dataset))):  
             node_features = torch.FloatTensor(dataset[i, :, :].transpose(1,0)) ## (time, n_node)
             # node_features = node_features[list(H.nodes)]
             pyg_graph = from_networkx(H)
             # add self loop
             if args.self_loop == True:
                 pyg_graph.edge_index = add_self_loops(pyg_graph.edge_index)[0]
+            if args.bidirect == True:
+                pyg_graph.edge_index = to_undirected(pyg_graph.edge_index) 
             
             pyg_graph.x = node_features
             pyg_graph.y = torch.tensor(labels[i])
